@@ -1,0 +1,20 @@
+# Private drafts (LinkedIn post, images for approval). Never commit.
+_drafts/
+
+# Native test build output
+test/build/
+
+# Arduino and compiler output
+build/
+*.hex
+*.elf
+*.eep
+*.bin
+
+# macOS
+.DS_Store
+
+# Editors
+.vscode/
+.idea/
+*.swp

@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  native-tests:
+    name: Native tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Behaviour tests (all build variants)
+        run: make -C test test
+
+      - name: Mutation check
+        run: make -C test mutation
+
+      - name: Equivalence with the 2025 sketch
+        run: make -C test equivalence
+
+  compile:
+    name: Compile (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Uno R3
+            fqbn: arduino:avr:uno
+            extra: -DREGATTA_CI=1
+          - name: Nano, new bootloader
+            fqbn: arduino:avr:nano:cpu=atmega328
+            extra: -DREGATTA_CI=1
+          - name: Nano, old bootloader
+            fqbn: arduino:avr:nano:cpu=atmega328old
+            extra: -DREGATTA_CI=1
+          - name: Uno R3, relay active LOW
+            fqbn: arduino:avr:uno
+            extra: -DHORN_ACTIVE_HIGH=0
+          - name: Uno R3, clock trim and long one-minute signal
+            fqbn: arduino:avr:uno
+            extra: -DCLOCK_TRIM_PPM=1000 -DSOUND_AT_ONE_MS=3000
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compile the sketch
+        uses: arduino/compile-sketches@v1
+        with:
+          fqbn: ${{ matrix.fqbn }}
+          sketch-paths: |
+            - firmware/RegattaStartTimer
+          platforms: |
+            - name: arduino:avr
+              version: 1.8.8
+          libraries: |
+            - name: TM1637
+              version: 1.2.0
+          cli-compile-flags: |
+            - --warnings
+            - all
+            - --build-property
+            - build.extra_flags=${{ matrix.extra }}
+          enable-deltas-report: false
+          enable-warnings-report: true
